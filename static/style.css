@@ -1,0 +1,45 @@
+h5 {
+    color: #4444;
+}
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    padding: 0;
+    background-color: #f5f5f5;
+}
+.container {
+    border: 2px solid black;
+    padding: 20px;
+    max-width: 600px;
+    background-color: #fff8d1;
+}
+h1 {
+    text-align: center;
+    background-color: #ffd700;
+    border: 1px solid black;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+label {
+    display: block;
+    margin: 10px 0 5px;
+}
+select, input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 20px;
+    border: 2px solid orange;
+    box-sizing: border-box;
+}
+.input-fields, .frame {
+    display: none;
+    border: 2px solid orange;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+#result {
+    border: 2px solid black;
+    padding: 20px;
+    min-height: 100px;
+    background-color: #fff;
+}
