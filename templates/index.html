@@ -8,62 +8,101 @@
     <title>Калькулятор ресурсов SOC</title>
 </head>
 <body>
-    <h5>calc v0.0.1b</h5>
     <div class="container">
-    <h1>Калькулятор ресурсов SOC</h1>
+        <h1>Калькулятор ресурсов SOC</h1>
 
-    <label for="calculator-type">Выбор типа калькулятора:</label>
-    <select id="calculator-type">
-        <option value="0">Выбрать режим</option>
-        <option value="1">Режим 1: Ввод данных</option>
-        <option value="2">Режим 2: -</option>
-        <option value="3">Режим 3: -</option>
-    </select>
+        <label for="calculator-type">Выбор типа калькулятора:</label>
+        <select id="calculator-type">
+            <option value="0">Выбрать режим</option>
+            <option value="1">Режим 1: Ввод данных</option>
+            <option value="2">Режим 2: -</option>
+            <option value="3">Режим 3: -</option>
+        </select>
 
-    <label for="customer-name">Ввод наименования нового заказчика:</label>
-    <input type="text" id="customer-name" placeholder="Текстовое поле ввода">
+        <div id="mode-1" class="input-fields">
+            <label for="work-hours">Количество часов работы:</label>
+            <input type="number" id="work-hours" placeholder="Например: 180">
 
-    <!-- Поля для режима 1 -->
-    <div id="mode-1" class="input-fields">
-        <input type="text" placeholder="Поле 1">
-        <input type="text" placeholder="Поле 2">
-        <input type="text" placeholder="Поле 3">
+            <label for="days-count">Среднее количество дней:</label>
+            <input type="number" id="days-count" placeholder="Например: 11">
+
+            <label for="max-files-day">Максимальное количество файлов в день:</label>
+            <input type="number" id="max-files-day" placeholder="Например: 58">
+
+            <button id="calculate">Рассчитать</button>
+        </div>
+
+        <!-- Поля для режима 2 -->
+        <div id="mode-2" class="input-fields">
+            <p>Режим 2</p>
+        </div>
+
+        <!-- Поля для режима 3 -->
+        <div id="mode-3" class="input-fields">
+            <p>Режим 3"</p>
+        </div>
+
+        <div id="result">
+            <h3>Итоговые результаты:</h3>
+            <p id="result-output"></p>
+        </div>
     </div>
 
-    <!-- Поля для режима 2 -->
-    <div id="mode-2" class="input-fields">
-        <p>Режим 2</p>
-    </div>
+    <script>
+        const calculatorType = document.getElementById('calculator-type');
+        const mode1 = document.getElementById('mode-1');
+        const mode2 = document.getElementById('mode-2');
+        const mode3 = document.getElementById('mode-3');
 
-    <!-- Поля для режима 3 -->
-    <div id="mode-3" class="input-fields">
-        <p>Режим 3"</p>
-    </div>
+        calculatorType.addEventListener('change', function() {
+            mode1.style.display = 'none';
+            mode2.style.display = 'none';
+            mode3.style.display = 'none';
 
-    <label>Итоговый результат:</label>
-    <div id="result"></div>
-</div>
+            if (this.value === '1') {
+                mode1.style.display = 'block';
+            } else if (this.value === '2') {
+                mode2.style.display = 'block';
+            } else if (this.value === '3') {
+                mode3.style.display = 'block';
+            }
+        });
+        document.getElementById('calculate').addEventListener('click', function() {
+            const workHours = parseFloat(document.getElementById('work-hours').value);
+            const daysCount = parseFloat(document.getElementById('days-count').value);
+            const maxFilesDay = parseFloat(document.getElementById('max-files-day').value);
 
-<script>
-    const calculatorType = document.getElementById('calculator-type');
-    const mode1 = document.getElementById('mode-1');
-    const mode2 = document.getElementById('mode-2');
-    const mode3 = document.getElementById('mode-3');
+            if (isNaN(workHours) || isNaN(daysCount) || isNaN(maxFilesDay)) {
+                alert('Пожалуйста, введите все данные.');
+                return;
+            }
 
-    calculatorType.addEventListener('change', function() {
-        mode1.style.display = 'none';
-        mode2.style.display = 'none';
-        mode3.style.display = 'none';
+            const data = {
+                work_hours: workHours,
+                days_count: daysCount,
+                max_files_day: maxFilesDay
+            };
 
-        if (this.value === '1') {
-            mode1.style.display = 'block';
-        } else if (this.value === '2') {
-            mode2.style.display = 'block';
-        } else if (this.value === '3') {
-            mode3.style.display = 'block';
-        }
-    });
-</script>
-
+            fetch('/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('result-output').innerHTML = `
+                    <strong>Максимальное количество файлов в месяц:</strong> ${result.max_files_month.toFixed(2)}<br>
+                    <strong>Фактическое количество файлов в месяц:</strong> ${result.fact_files_month.toFixed(2)}<br>
+                    <strong>Разница в нагрузке:</strong> ${result.load_difference.toFixed(2)}
+                `;
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при расчете.');
+            });
+        });
+    </script>
 </body>
 </html>
