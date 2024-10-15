@@ -20,26 +20,59 @@
             <option value="3">Режим 3: -</option>
         </select>
 
-        <!-- Поля для режима 1 -->
-        <div id="mode-1" class="input-fields">
-            <!-- поля для ввода значений -->
-            <label for="work-hours">Количество часов работы:</label>
-            <input type="number" id="work-hours" placeholder="Например: 180">
-
-            <label for="days-count">Среднее количество дней:</label>
-            <input type="number" id="days-count" placeholder="Например: 11">
-
-            <label for="max-files-day">Максимальное количество файлов в день:</label>
-            <input type="number" id="max-files-day" placeholder="Например: 58">
-
-            <!-- кнопка рассчиать для режима1 -->
-            <button id="calculate">Рассчитать</button>
-
-            <div id="result">
-            <h3>Итоговые результаты:</h3>
-            <p id="result-output"></p>
-            </div>
+        <!-- Поля для режима 0 -->
+        <div id="mode-0" class="input-fields">
+            <p>тут будет описание работы режимов калькулятора</p>
         </div>
+        <!-- Поля для режима 1 -->
+         <form id="mode-1" class="input-fields" method="POST" action="/calculate">
+
+             <table border="1">
+                <tr>
+                    <th>Стоковые данные для заполнения</th>
+                    <th>общее</th>
+                    <th>день</th>
+                    <th>ночь/пр/вых</th>
+                    <th>день/пр/вых</th>
+                </tr>
+                <tr>
+                    <td>Факт среднее кол-во файлов в месяц</td>
+                    <td><input type="number" id="total-files" name="total_files" placeholder="Например: 10491"></td>
+                    <td><input type="number" id="day-files" name="day_files" placeholder="Например: 6539"></td>
+                    <td><input type="number" id="night-files" name="night_files" placeholder="Например:1143"></td>
+                    <td><input type="number" id="day-pr-files" name="day_pr_files" placeholder="Например: 833"></td>
+                </tr>
+                <tr>
+                    <td>Кол-во новых пользователей (УЗ)</td>
+                    <td><input type="number" id="new-users" name="new_users" placeholder="Например: 600"></td>
+
+                </tr>
+                <tr>
+                    <th>Кол-во часов</th>
+                    <th>180 часов</th>
+                    <th>168 часов</th>
+                    <th>79 часов</th>
+                    <th>180 часов ночь</th>
+                </tr>
+                <tr>
+                    <td>Факт кол-во машин</td>
+                    <td><input type="number" id="total-machines" name="total_machines" placeholder="Например: 2"></td>
+                    <td><input type="number" id="day-machines" name="day_machines" placeholder="Например: 4"></td>
+                    <td><input type="number" id="night-machines" name="night_machines" placeholder="Например: 3"></td>
+                    <td><input type="number" id="night-pr-machines" name="night_pr_machines" placeholder="Например: 2"></td>
+                </tr>
+            </table>
+
+
+            <!-- Кнопка рассчитать для режима 1 -->
+            <button type="submit">Рассчитать</button>
+             <div id="result">
+                <h3>Итоговые результаты:</h3>
+                <p id="result-output"></p>
+            </div>
+        </form>
+
+
 
         <!-- Поля для режима 2 -->
         <div id="mode-2" class="input-fields">
@@ -48,7 +81,7 @@
 
         <!-- Поля для режима 3 -->
         <div id="mode-3" class="input-fields">
-            <p>Режим 3"</p>
+            <p>Режим 3</p>
         </div>
     </div>
 
