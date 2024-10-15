@@ -61,7 +61,7 @@ table td {
 footer {
 position: absolute;
 bottom: 0;
-width: 100%;
+width: 80%;
 height: 120px; /* Высота блока footer */
 /*background: rgba(14,14,14,0.95);*/
 }
