@@ -58,3 +58,10 @@ table th {
 table td {
     white-space: nowrap; /* Отключаем перенос строк в ячейках */
 }
+footer {
+position: absolute;
+bottom: 0;
+width: 100%;
+height: 120px; /* Высота блока footer */
+/*background: rgba(14,14,14,0.95);*/
+}
