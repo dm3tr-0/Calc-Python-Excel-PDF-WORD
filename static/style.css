@@ -1,6 +1,3 @@
-h5 {
-    color: #4444;
-}
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
@@ -10,7 +7,7 @@ body {
 .container {
     border: 2px solid black;
     padding: 20px;
-    max-width: 600px;
+    max-width: 1200px;
     background-color: #fff8d1;
 }
 h1 {
@@ -42,4 +39,22 @@ select, input[type="text"] {
     padding: 20px;
     min-height: 100px;
     background-color: #fff;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    padding: 8px;
+    text-align: center;
+}
+
+table th {
+    background-color: #f2f2f2;
+}
+
+table td {
+    white-space: nowrap; /* Отключаем перенос строк в ячейках */
 }
