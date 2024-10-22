@@ -1,67 +1,101 @@
+
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
     padding: 0;
     background-color: #f5f5f5;
+    padding-bottom: 100px;
 }
+
 .container {
-    border: 2px solid black;
+    border: 5px solid #000000;
     padding: 20px;
     max-width: 1200px;
-    background-color: #fff8d1;
+    background-color: #fff;
+    border-radius: 20px; /* Скругление углов */
 }
+
 h1 {
     text-align: center;
-    background-color: #ffd700;
-    border: 1px solid black;
-    padding: 10px;
+    background-color: #79bff2; /* Синий фон */
+    color: #000000; /* Черный текст */
+    border: 3px solid #000000;
+    padding: 15px;
     margin-bottom: 20px;
+    border-radius: 20px; /* Скругление углов */
 }
+
 label {
     display: block;
     margin: 10px 0 5px;
+    font-size: 20px;
+    color: #000000; /* Черный текст */
 }
-select, input[type="text"] {
+
+select, input[type="number"] {
     width: 100%;
     padding: 10px;
     margin: 5px 0 20px;
-    border: 2px solid orange;
+    border: 2px solid #79bff2;
+    border-radius: 10px; /* Скругление углов */
     box-sizing: border-box;
+    font-size: 18px;
 }
-.input-fields, .frame {
+
+.input-fields {
+    border: 3px solid #79bff2;
     display: none;
-    border: 2px solid orange;
-    padding: 10px;
-    margin-bottom: 20px;
-}
-#result {
-    border: 2px solid black;
     padding: 20px;
-    min-height: 100px;
-    background-color: #fff;
+    margin-bottom: 20px;
+    border-radius: 20px; /* Скругление углов */
+    background-color: #dceeff; /* Светло-синий фон */
+}
+
+button[type="submit"] {
+    background-color: #ff4f92; /* Розовая кнопка */
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    font-size: 20px;
+    border-radius: 15px; /* Скругление углов */
+    cursor: pointer;
+}
+
+button[type="submit"]:hover {
+    background-color: #e54382; /* Изменение цвета при наведении */
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
+    margin-bottom: 20px;
 }
 
 table th, table td {
-    padding: 8px;
+    padding: 15px;
     text-align: center;
+    border: 2px solid #000000; /* Черные границы */
+    font-size: 18px;
 }
 
 table th {
-    background-color: #f2f2f2;
+    background-color: #79bff2; /* Синий фон */
+    color: #000000;
+    border-radius: 10px;
 }
 
 table td {
+    background-color: #ffffff; /* Белый фон */
+    color: #000000; /* Черный текст */
+    border-radius: 10px;
     white-space: nowrap; /* Отключаем перенос строк в ячейках */
 }
-footer {
-position: absolute;
-bottom: 0;
-width: 80%;
-height: 120px; /* Высота блока footer */
-/*background: rgba(14,14,14,0.95);*/
+
+#result {
+    border: 3px solid #000000;
+    padding: 20px;
+    min-height: 100px;
+    background-color: #f2f2f2;
+    border-radius: 20px; /* Скругление углов */
 }
+
