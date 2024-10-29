@@ -74,7 +74,8 @@ table {
 table th, table td {
     padding: 15px;
     text-align: center;
-    border: 2px solid #000000; /* Черные границы */
+    border: 2px solid #000000;
+    border-radius: 20px;
     font-size: 18px;
 }
 
@@ -82,6 +83,7 @@ table th {
     background-color: #79bff2; /* Синий фон */
     color: #000000;
     border-radius: 10px;
+
 }
 
 table td {
@@ -89,6 +91,7 @@ table td {
     color: #000000; /* Черный текст */
     border-radius: 10px;
     white-space: nowrap; /* Отключаем перенос строк в ячейках */
+
 }
 
 #result {
@@ -99,3 +102,101 @@ table td {
     border-radius: 20px; /* Скругление углов */
 }
 
+/* Контейнер для кнопки Экспорт и выпадающих опций */
+  .export-container {
+    position: relative;
+    display: inline-block;
+  }
+
+
+
+  /* Стили для основной кнопки */
+  .export-btn {
+    padding: 15px 30px;
+    background-color: #ff4f92;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    border-radius: 15px;
+  }
+
+  /* Контейнер для выплывающих кнопок */
+  .export-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0px;
+    background-color: #ffffff;
+    border-radius: 5px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  /* Стиль для выплывающих кнопок */
+  .export-options button {
+    padding: 10px 20px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: #ffffff;
+    color: #333;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Иконки и отступы для них */
+  .export-options button img {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+  }
+
+  /* Появление выплывающих кнопок при наведении на контейнер */
+  .export-container:hover .export-options {
+    display: block;
+  }
+
+  /* Изменение фона при наведении на опции */
+  .export-options button:hover {
+    background-color: #f0f0f0;
+  }
+
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 24px;
+        padding: 10px;
+    }
+
+    label {
+        font-size: 16px;
+    }
+
+    select, input[type="number"], button[type="submit"] {
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    table th, table td {
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    .container, .input-fields, #result {
+        padding: 15px;
+    }
+
+    /* Горизонтальная прокрутка для таблиц */
+    .container {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 600px;
+    }
+}
