@@ -104,6 +104,13 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         fact_mashine_loss['79h'] = round(((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) -
                                            fact_mid_files_month['180-79h']) / (max_files_month['79h']) * 2.5)
 
+    if fact_diff_stress['180h_night'] < 0:
+        fact_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
+    elif round((fact_percent_stress['180h_night'] + fact_percent_stress['180h_pr']) / 2) < 80:
+        fact_mashine_loss['180h_pr_night'] = 0
+    else:
+        fact_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
+
 
 
 
@@ -166,16 +173,7 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '79h': -1,
         '180h_pr_night': 0
     }
-    # if fact_percent_stress['180-79h'] < 86:
-    #    fact_mashine_loss['168h'] = 0
-    # else:
-    #    fact_mashine_loss['168h'] = ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) - fact_mid_files_month['180-79h']) / (-max_files_month['168h'])
 
-    # if fact_percent_stress['180-79h'] < 86:
-    #    fact_mashine_loss['168h'] = 0
-
-    # факт среднее кол-во файлов в месяц уже есть(fact_mid_files_month)
-    # кол-во новыз уз в new_users
 
     # среднее количесво файлов новых уз в месяц
     plan_mid_fileUZ_month = {
@@ -222,9 +220,30 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_pr_night': 0
     }
 
+    if plan_percent_stress['180-79h'] < 86:
+        plan_mashine_loss['168h'] = 0
+    else:
+        plan_mashine_loss['168h'] = round((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] - plan_mid_newfiles_month['180-79h']) / max_files_month['168h'])
+
+    if plan_percent_stress['180-79h'] < 86:
+        plan_mashine_loss['79h'] = 0
+    else:
+        plan_mashine_loss['79h'] = round((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] - plan_mid_newfiles_month['180-79h']) / max_files_month['79h'] * 1.5)
 
 
-    plan_result = ("План: <br><br>"
+
+    if plan_diff_stress['180h_night'] < 0:
+        plan_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
+    elif plan_percent_stress['180h_night'] < 80:
+        plan_mashine_loss['180h_pr_night'] = 0
+    else:
+        plan_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
+
+
+
+
+    plan_result = (
+        "План: <br><br>"
         f"{format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])}<br>"
     )
     return plan_result
