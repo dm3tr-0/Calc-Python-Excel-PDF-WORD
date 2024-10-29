@@ -70,11 +70,26 @@
 
             <!-- Кнопка рассчитать для режима 1 -->
             <button type="submit">Рассчитать</button>
+
+             <div class="export-container">
+                  <button class="export-btn">Экспорт</button>
+                  <div class="export-options">
+                    <button onclick="exportToExcel()">
+                      <img src="static/excel_logo.png" alt="Excel Icon"> Excel
+                    </button>
+                    <button onclick="exportToPDF()">
+                      <img src="static/pdf_logo.png" alt="PDF Icon"> PDF
+                    </button>
+                  </div>
+             </div>
+
              <div id="result">
                 <h3>Итоговые результаты:</h3>
                 <p id="result-output"></p>
             </div>
         </form>
+
+
 
         <!-- Поля для режима 2 -->
         <div id="mode-2" class="input-fields">
@@ -89,5 +104,20 @@
 
     <script src="{{ url_for('static', filename='frame-switch.js') }}"></script>
     <script src="{{ url_for('static', filename='calculate-result.js') }}"></script>
+
+    <script>
+      function exportToExcel() {
+        alert("Экспорт в Excel");
+      }
+
+      function exportToPDF() {
+        alert("Экспорт в PDF");
+      }
+    </script>
+
+
+
+
+
 </body>
 </html>
