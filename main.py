@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from settings import * #тут зашитые значения
-#from math import
+import math
 
 app = Flask(__name__)
 
@@ -96,13 +96,21 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     if fact_percent_stress['180-79h'] < 86:
         fact_mashine_loss['168h'] = 0
     else:
-         fact_mashine_loss['168h'] = round(((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) - fact_mid_files_month['180-79h']) / (-max_files_month['168h']))
+         fact_mashine_loss['168h'] = round( ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'])  * (fact_percent_stress['180-79h'] - 86)) / 86 / max_files_month['168h'])
 
-    if fact_percent_stress['180-79h'] < 86:
+
+
+
+
+    if fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) < 0.86:
         fact_mashine_loss['79h'] = 0
     else:
-        fact_mashine_loss['79h'] = round(((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) -
-                                           fact_mid_files_month['180-79h']) / (max_files_month['79h']) * 2.5)
+        fact_mashine_loss['79h'] = math.ceil((fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) - 0.86) * (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) / 86 / max_files_month['79h'])
+
+
+
+
+
 
     if fact_diff_stress['180h_night'] < 0:
         fact_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
@@ -248,8 +256,12 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     )
     return plan_result
 
-#экспорт результатов
-def export():
+#экспорт результатов в табличку эксель
+def export_to_excel():
+    pass
+
+#экспорт результатов в файл pdf
+def export_to_pdf():
     pass
 
 
