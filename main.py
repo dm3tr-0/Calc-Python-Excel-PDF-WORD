@@ -286,34 +286,25 @@ def export_excel():
     num_columns = max(len(values) for dict_data in data for values in dict_data.values())
     columns = [f'Col{i + 1}' for i in range(num_columns)]
 
-    # Формируем строки для таблицы
     rows = []
     for key in keys:
-        row = [key]  # Добавляем ключ как первую ячейку
+        row = [key]
         for i in range(len(data)):
             values = data[i].get(key, [])
-            row.extend(
-                values + [""] * (num_columns - len(values)))  # Заполняем пустыми ячейками, если не хватает значений
+            row.extend(values + [""] * (num_columns - len(values)))
         rows.append(row)
 
-    # Заголовки для таблицы, добавляем Value1 и Value2
     headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
-
-    # Создаем DataFrame
     df = pd.DataFrame(rows, columns=headers)
 
-    # Экспорт в Excel
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Sheet1')
     output.seek(0)
 
-    # Сохраняем в сессии
-    session['excel_file'] = output.read()
-    output.close()
-
-    return send_file(BytesIO(session['excel_file']), as_attachment=True, download_name="report.xlsx")
-
+    # Передача файла напрямую в ответе, не используя сессии
+    return send_file(output, as_attachment=True, download_name="report.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 #экспорт результатов в файл пдф
 @app.route('/export_pdf')
@@ -338,29 +329,23 @@ def export_pdf():
                             bottomMargin=20)
     table = Table(table_data)
 
-    # Стиль таблицы с настройкой ширины
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 6),  # Уменьшаем размер шрифта
+        ('FONTSIZE', (0, 0), (-1, -1), 6),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
     ])
     table.setStyle(style)
-
-    # Автоматическая подгонка ширины таблицы
     table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
 
     pdf.build([table])
     output.seek(0)
 
-    session['pdf_file'] = output.read()
-    output.close()
-
-    return send_file(BytesIO(session['pdf_file']), as_attachment=True, download_name="report.pdf")
+    return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
 
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
@@ -422,7 +407,7 @@ def calculate():
 
 
 
-    print(data)
+
     ###########################################
     # Создаём итоговый результат в виде строк
     ###########################################
