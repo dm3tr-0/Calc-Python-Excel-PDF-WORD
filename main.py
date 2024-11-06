@@ -1,9 +1,16 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file, session
 from settings import * #тут зашитые значения
 import math
+import os
+from io import BytesIO
+import pandas as pd
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
+from reportlab.lib import colors
 
 app = Flask(__name__)
-
+app.secret_key = os.urandom(24) #ключ защищающий сессию пользователя
 
 @app.route('/')
 def index():
@@ -35,13 +42,13 @@ def format_dicts_side_by_side(dicts):
                 for k in column_keys:
                     table[k].append('')
 
+    return table
+    #rows = []
+    #for key in column_keys:
+    #    row = f"{key}: " + " | ".join(str(v) for v in table[key])
+    #    rows.append(row)
 
-    rows = []
-    for key in column_keys:
-        row = f"{key}: " + " | ".join(str(v) for v in table[key])
-        rows.append(row)
-
-    return "<br>".join(rows)
+    #return "<br>".join(rows)
 
 #факт расчет
 def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machines_168h, machines_79h, machines_180h_night):
@@ -123,10 +130,15 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
 
 
 
+    data[0] = format_dicts_side_by_side([fact_mid_files_month, fact_mashine_count, fact_max_files, fact_diff_stress, fact_percent_stress, fact_mashine_loss])
 
     fact_result = (
-        "Факт: <br><br>"
-        f"{format_dicts_side_by_side([fact_mid_files_month, fact_mashine_count, fact_max_files, fact_diff_stress, fact_percent_stress, fact_mashine_loss])}<br><br>"
+        #"Факт: <br><br>"
+        #f"{format_dicts_side_by_side([fact_mid_files_month, fact_mashine_count, fact_max_files, fact_diff_stress, fact_percent_stress, fact_mashine_loss])}<br><br>"
+        f"Фактическая нехватка машин<br>"
+        f"для 168ч: {fact_mashine_loss['168h']}<br>"
+        f"для 79ч: {fact_mashine_loss['79h']}<br>"
+        f"для 180ч пр/ночь: {fact_mashine_loss['180h_pr_night']}<br><br>"
     )
 
 
@@ -249,25 +261,112 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
 
 
 
+    data[1] = format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])
 
     plan_result = (
-        "План: <br><br>"
-        f"{format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])}<br>"
+        #"План: <br><br>"
+        #f"{format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])}<br>"
+        f"Планируемая нехватка машин<br>"
+        f"для 168ч: {plan_mashine_loss['168h']}<br>"
+        f"для 79ч: {plan_mashine_loss['79h']}<br>"
+        f"для 180ч пр/ночь: {plan_mashine_loss['180h_pr_night']}<br>"
     )
     return plan_result
 
+
+
+#тут хранятся данные для экспорта, полученные после расчета
+data = [{}, {}]
+
 #экспорт результатов в табличку эксель
-def export_to_excel():
-    pass
+@app.route('/export_excel')
+def export_excel():
+    # Получаем ключи и определяем количество колонок
+    keys = list(data[0].keys())
+    num_columns = max(len(values) for dict_data in data for values in dict_data.values())
+    columns = [f'Col{i + 1}' for i in range(num_columns)]
 
-#экспорт результатов в файл pdf
-def export_to_pdf():
-    pass
+    # Формируем строки для таблицы
+    rows = []
+    for key in keys:
+        row = [key]  # Добавляем ключ как первую ячейку
+        for i in range(len(data)):
+            values = data[i].get(key, [])
+            row.extend(
+                values + [""] * (num_columns - len(values)))  # Заполняем пустыми ячейками, если не хватает значений
+        rows.append(row)
 
+    # Заголовки для таблицы, добавляем Value1 и Value2
+    headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+
+    # Создаем DataFrame
+    df = pd.DataFrame(rows, columns=headers)
+
+    # Экспорт в Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    output.seek(0)
+
+    # Сохраняем в сессии
+    session['excel_file'] = output.read()
+    output.close()
+
+    return send_file(BytesIO(session['excel_file']), as_attachment=True, download_name="report.xlsx")
+
+
+#экспорт результатов в файл пдф
+@app.route('/export_pdf')
+def export_pdf():
+    # Получаем ключи и количество колонок
+    keys = list(data[0].keys())
+    num_columns = max(len(values) for dict_data in data for values in dict_data.values())
+    columns = [f'Col{i + 1}' for i in range(num_columns)]
+
+    headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+    table_data = [headers]
+
+    for key in keys:
+        row = [key]
+        for i in range(len(data)):
+            values = data[i].get(key, [])
+            row.extend(values + [""] * (num_columns - len(values)))
+        table_data.append(row)
+
+    output = BytesIO()
+    pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
+                            bottomMargin=20)
+    table = Table(table_data)
+
+    # Стиль таблицы с настройкой ширины
+    style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 6),  # Уменьшаем размер шрифта
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+    ])
+    table.setStyle(style)
+
+    # Автоматическая подгонка ширины таблицы
+    table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
+
+    pdf.build([table])
+    output.seek(0)
+
+    session['pdf_file'] = output.read()
+    output.close()
+
+    return send_file(BytesIO(session['pdf_file']), as_attachment=True, download_name="report.pdf")
 
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
 def calculate():
+    data[0].clear()
+    data[1].clear()
     ###########################
     # Получаем данные из формы:
     ###########################
@@ -323,7 +422,7 @@ def calculate():
 
 
 
-
+    print(data)
     ###########################################
     # Создаём итоговый результат в виде строк
     ###########################################
