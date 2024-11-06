@@ -74,10 +74,10 @@
              <div class="export-container">
                   <button class="export-btn">Экспорт</button>
                   <div class="export-options">
-                    <button onclick="exportToExcel()">
+                    <button onclick="window.location.href='/export_excel'">
                       <img src="static/excel_logo.png" alt="Excel Icon"> Excel
                     </button>
-                    <button onclick="exportToPDF()">
+                    <button onclick="window.location.href='/export_pdf'">
                       <img src="static/pdf_logo.png" alt="PDF Icon"> PDF
                     </button>
                   </div>
@@ -105,15 +105,7 @@
     <script src="{{ url_for('static', filename='frame-switch.js') }}"></script>
     <script src="{{ url_for('static', filename='calculate-result.js') }}"></script>
 
-    <script>
-      function exportToExcel() {
-        alert("Экспорт в Excel");
-      }
 
-      function exportToPDF() {
-        alert("Экспорт в PDF");
-      }
-    </script>
 
 
 
