@@ -281,71 +281,77 @@ data = [{}, {}]
 #экспорт результатов в табличку эксель
 @app.route('/export_excel')
 def export_excel():
-    # Получаем ключи и определяем количество колонок
-    keys = list(data[0].keys())
-    num_columns = max(len(values) for dict_data in data for values in dict_data.values())
-    columns = [f'Col{i + 1}' for i in range(num_columns)]
+    try:
+        # Получаем ключи и определяем количество колонок
+        keys = list(data[0].keys())
+        num_columns = max(len(values) for dict_data in data for values in dict_data.values())
+        columns = [f'Col{i + 1}' for i in range(num_columns)]
 
-    rows = []
-    for key in keys:
-        row = [key]
-        for i in range(len(data)):
-            values = data[i].get(key, [])
-            row.extend(values + [""] * (num_columns - len(values)))
-        rows.append(row)
+        rows = []
+        for key in keys:
+            row = [key]
+            for i in range(len(data)):
+                values = data[i].get(key, [])
+                row.extend(values + [""] * (num_columns - len(values)))
+            rows.append(row)
 
-    headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
-    df = pd.DataFrame(rows, columns=headers)
+        headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+        df = pd.DataFrame(rows, columns=headers)
 
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-    output.seek(0)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Sheet1')
+        output.seek(0)
 
-    # Передача файла напрямую в ответе, не используя сессии
-    return send_file(output, as_attachment=True, download_name="report.xlsx",
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        # Передача файла напрямую в ответе, не используя сессии
+        return send_file(output, as_attachment=True, download_name="report.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    except Exception:
+        return "расчеты не были произведены"
 
 #экспорт результатов в файл пдф
 @app.route('/export_pdf')
 def export_pdf():
-    # Получаем ключи и количество колонок
-    keys = list(data[0].keys())
-    num_columns = max(len(values) for dict_data in data for values in dict_data.values())
-    columns = [f'Col{i + 1}' for i in range(num_columns)]
+    try:
+        # Получаем ключи и количество колонок
+        keys = list(data[0].keys())
+        num_columns = max(len(values) for dict_data in data for values in dict_data.values())
+        columns = [f'Col{i + 1}' for i in range(num_columns)]
 
-    headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
-    table_data = [headers]
+        headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+        table_data = [headers]
 
-    for key in keys:
-        row = [key]
-        for i in range(len(data)):
-            values = data[i].get(key, [])
-            row.extend(values + [""] * (num_columns - len(values)))
-        table_data.append(row)
+        for key in keys:
+            row = [key]
+            for i in range(len(data)):
+                values = data[i].get(key, [])
+                row.extend(values + [""] * (num_columns - len(values)))
+            table_data.append(row)
 
-    output = BytesIO()
-    pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
-                            bottomMargin=20)
-    table = Table(table_data)
+        output = BytesIO()
+        pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
+                                bottomMargin=20)
+        table = Table(table_data)
 
-    style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
-    ])
-    table.setStyle(style)
-    table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+        ])
+        table.setStyle(style)
+        table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
 
-    pdf.build([table])
-    output.seek(0)
+        pdf.build([table])
+        output.seek(0)
 
-    return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
+        return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
+    except Exception:
+        return "расчеты не были произведены"
 
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
