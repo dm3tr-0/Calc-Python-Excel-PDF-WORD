@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, flash, redirect
 from settings import * #тут зашитые значения
 import math
 import os
@@ -307,7 +307,7 @@ def export_excel():
         return send_file(output, as_attachment=True, download_name="report.xlsx",
                          mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     except Exception:
-        return "расчеты не были произведены"
+        return '', 204
 
 #экспорт результатов в файл пдф
 @app.route('/export_pdf')
@@ -351,7 +351,7 @@ def export_pdf():
 
         return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
     except Exception:
-        return "расчеты не были произведены"
+        return '', 204
 
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
