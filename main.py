@@ -1,16 +1,22 @@
 from flask import Flask, render_template, request, jsonify, send_file
+
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 from settings import * #тут зашитые значения
+
 import math
 import os
+
 from io import BytesIO
+
 import pandas as pd
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
 from reportlab.lib import colors
+
+from docx import Document
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #ключ защищающий сессию пользователя
@@ -225,7 +231,7 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_night': round(100 * plan_mid_newfiles_month['180h_night'] / fact_max_files['180h_night'])
     }
 
-    # планируемая нехватка машин
+    # планируемая нехватка машин TODO поменять формулы
     plan_mashine_loss = {
         '180h': 'black',
         '168h': -1,
@@ -275,117 +281,199 @@ data = [{}, {}]
 @app.route('/export_excel')
 def export_excel():
     try:
-        # Получаем ключи и определяем количество колонок
-        keys = list(data[0].keys())
-        num_columns = 15 #6+9
-        columns = columns = ['Факт среднее\n кол-во файлов\n в месяц',
-                   'Факт  \nкол-во машин',
-                   'Факт \nмаксимальное\n кол-во файлов',
-                   'Факт разница\n нагрузки',
-                   'Факт \nнагрузка в %',
-                   'Факт \nнехватка машин',
+        if data[0] != {}:
+            # Получаем ключи и определяем количество колонок
+            keys = list(data[0].keys())
+            num_columns = 15 #6+9
+            columns = columns = ['Факт среднее\n кол-во файлов\n в месяц',
+                       'Факт  \nкол-во машин',
+                       'Факт \nмаксимальное\n кол-во файлов',
+                       'Факт разница\n нагрузки',
+                       'Факт \nнагрузка в %',
+                       'Факт \nнехватка машин',
 
-                   'Факт \nсреднее кол-во\n файлов в месяц',
-                   'Кол-во \nновых УЗ',
-                   'Среднее кол-во\n файлов новых\n УЗ в месяц',
-                   'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
-                   'Факт  \nкол-во машин',
-                   'Факт \nмаксимальное \nкол-во файлов',
-                   'Планируемая\nразница нагрузки',
-                   'Планируемая\nнагрузка в %',
-                   'Планируемая\nнехватка машин'
-                   ]
-        l = 2
-        if data[1] == {}:
-            num_columns = 6
-            columns = columns[:6]
-            l = 1
-        rows = []
-        for key in keys:
-            row = [key]
-            for i in range(l):
-                values = data[i].get(key, [])
-                row.extend(values)
-            rows.append(row)
+                       'Факт \nсреднее кол-во\n файлов в месяц',
+                       'Кол-во \nновых УЗ',
+                       'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                       'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                       'Факт  \nкол-во машин',
+                       'Факт \nмаксимальное \nкол-во файлов',
+                       'Планируемая\nразница нагрузки',
+                       'Планируемая\nнагрузка в %',
+                       'Планируемая\nнехватка машин'
+                       ]
+            l = 2
+            if data[1] == {}:
+                num_columns = 6
+                columns = columns[:6]
+                l = 1
+            rows = []
+            for key in keys:
+                row = [key]
+                for i in range(l):
+                    values = data[i].get(key, [])
+                    row.extend(values)
+                rows.append(row)
 
-        headers = [""] + columns
-        df = pd.DataFrame(rows, columns=headers)
+            headers = [""] + columns
+            df = pd.DataFrame(rows, columns=headers)
 
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Sheet1')
-        output.seek(0)
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+            output.seek(0)
 
-        # Передача файла напрямую в ответе, не используя сессии
-        return send_file(output, as_attachment=True, download_name="report.xlsx",
-                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            # Передача файла напрямую в ответе, не используя сессии
+            return send_file(output, as_attachment=True, download_name="report.xlsx",
+                             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        else:
+            return '', 204
     except Exception:
         return '', 204
 
 #экспорт результатов в файл пдф
+#выбор шрифта для файла пфд(локально)
 pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
+#выбор шрифта для файла пфд(путь для сервера)
+#pdfmetrics.registerFont(TTFont('Arial', '/home/dm3tr0/mysite/fonts/arial.ttf'))
 @app.route('/export_pdf')
 def export_pdf():
     try:
-        # Получаем ключи и количество колонок
-        keys = list(data[0].keys())
-        num_columns = 15 #6+9
-        columns = ['Факт среднее\n кол-во файлов\n в месяц',
-                   'Факт  \nкол-во машин',
-                   'Факт \nмаксимальное\n кол-во файлов',
-                   'Факт разница\n нагрузки',
-                   'Факт \nнагрузка в %',
-                   'Факт \nнехватка машин',
+        if data[0] != {}:
+            # Получаем ключи и количество колонок
+            keys = list(data[0].keys())
+            num_columns = 15 #6+9
+            columns = ['Факт среднее\n кол-во файлов\n в месяц',
+                       'Факт  \nкол-во машин',
+                       'Факт \nмаксимальное\n кол-во файлов',
+                       'Факт разница\n нагрузки',
+                       'Факт \nнагрузка в %',
+                       'Факт \nнехватка машин',
 
-                   'Факт \nсреднее кол-во\n файлов в месяц',
-                   'Кол-во \nновых УЗ',
-                   'Среднее кол-во\n файлов новых\n УЗ в месяц',
-                   'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
-                   'Факт  \nкол-во машин',
-                   'Факт \nмаксимальное \nкол-во файлов',
-                   'Планируемая\nразница нагрузки',
-                   'Планируемая\nнагрузка в %',
-                   'Планируемая\nнехватка машин'
-                   ]
-        l = 2
-        if data[1] == {}:
-            num_columns = 6
-            columns = columns[:6]
-            l = 1
-        headers = [""] + columns
-        table_data = [headers]
+                       'Факт \nсреднее кол-во\n файлов в месяц',
+                       'Кол-во \nновых УЗ',
+                       'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                       'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                       'Факт  \nкол-во машин',
+                       'Факт \nмаксимальное \nкол-во файлов',
+                       'Планируемая\nразница нагрузки',
+                       'Планируемая\nнагрузка в %',
+                       'Планируемая\nнехватка машин'
+                       ]
+            l = 2
+            if data[1] == {}:
+                num_columns = 6
+                columns = columns[:6]
+                l = 1
+            headers = [""] + columns
+            table_data = [headers]
 
-        for key in keys:
-            row = [key]
-            for i in range(l):
-                values = data[i].get(key, [])
-                row.extend(values)
-            table_data.append(row)
+            for key in keys:
+                row = [key]
+                for i in range(l):
+                    values = data[i].get(key, [])
+                    row.extend(values)
+                table_data.append(row)
 
-        output = BytesIO()
-        pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
-                                bottomMargin=20)
-        table = Table(table_data)
+            output = BytesIO()
+            pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
+                                    bottomMargin=20)
+            table = Table(table_data)
 
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Arial'),
-            ('FONTSIZE', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
-        ])
-        table.setStyle(style)
-        table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
+            style = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Arial'),
+                ('FONTSIZE', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
+            ])
+            table.setStyle(style)
+            table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
 
-        pdf.build([table])
-        output.seek(0)
+            pdf.build([table])
+            output.seek(0)
 
-        return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
+            return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
+        else:
+            return '', 204
     except Exception:
         return '', 204
+
+#экспорт в вордовский документ TODO сделать отступы, шрифт, курсив и тд + поменять значения в словаре для замены
+@app.route('/export_word')
+def export_word():
+    try:
+        if data[0] != {}:
+
+            doc = Document()
+
+            # Добавляем текст с ключевыми словами для замены
+            doc.add_paragraph("На данный момент в отделе работает 15 машин, из них 8 работают в сменном графике (2/2) по 12 часов с 08:00 до 20:00 и с 20:00 до 08:00 и 7 работают по пятидневной рабочей неделе.")
+            doc.add_paragraph("Текущие показатели эффективности работы отдела:")
+            doc.add_paragraph("Среднее время обработки одного файла в дневное время — 8 минут.")
+            doc.add_paragraph("Среднее время обработки одного файла в ночное время и выходные дни — 6 минут.")
+            doc.add_paragraph("Фактическое количество новых пользователей — 8300.")
+            doc.add_paragraph("Фактическое количество файлов в дневное время — W.")
+            doc.add_paragraph("Фактическое количество файлов в ночное время — E.")
+            doc.add_paragraph("Фактическое количество машин: 180ч — R, 168ч — T, 79ч — Y, 180ч ночь — U.")
+            doc.add_paragraph("Процент фактической нагрузки на одну машину составляет — P%.")
+            doc.add_paragraph("Фактическое количество нехватки машин: 180ч — A, 168ч — S, 79ч — D, 180ч ночь — F.")
+
+            if data[1] != {}:
+                doc.add_paragraph("Планируемые показатели эффективности работы отдела:")
+                doc.add_paragraph("Планируемое количество новых пользователей — G.")
+                doc.add_paragraph("Планируемое количество файлов в дневное время — H.")
+                doc.add_paragraph("Планируемое количество файлов в ночное время — J.")
+                doc.add_paragraph("Планируемое количество новых пользователей с учетом новых пользователей — 15000.")
+                doc.add_paragraph("Планируемое количество файлов в дневное время — V, в ночное время — B.")
+                doc.add_paragraph("Процент планируемой нагрузки на одну машину составляет — K%.")
+                doc.add_paragraph("Планируемое количество нехватки машин: 180ч — L, 168ч — Z, 79ч — X, 180ч ночь — C.")
+            #замена на значения  TODO написать значения из словарей data
+            data_replace = {
+                "W": "120",
+                "E": "80",
+                "R": "10",
+                "T": "5",
+                "Y": "2",
+                "U": "3",
+                "P": "75%",
+                "A": "1",
+                "S": "0",
+                "D": "2",
+                "F": "1",
+                "G": "10000",
+                "H": "150",
+                "J": "100",
+                "V": "180",
+                "B": "120",
+                "K": "85%",
+                "L": "2",
+                "Z": "1",
+                "X": "0",
+                "C": "1"
+            }
+
+            # Заменяем ключевые слова в документе
+            for paragraph in doc.paragraphs:
+                for key, value in data_replace.items():
+                    if key in paragraph.text:
+                        paragraph.text = paragraph.text.replace(key, value)
+
+            # Сохраняем документ в памяти
+            file_stream = BytesIO()
+            doc.save(file_stream)
+            file_stream.seek(0)
+
+            # Возвращаем файл на скачивание
+            return send_file(file_stream, as_attachment=True, download_name="report.docx")
+        else:
+            return '', 204
+    except Exception:
+        return '', 204
+
 
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
