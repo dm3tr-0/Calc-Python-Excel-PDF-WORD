@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, jsonify, send_file, session, flash, redirect
+from flask import Flask, render_template, request, jsonify, send_file
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 from settings import * #тут зашитые значения
 import math
 import os
@@ -16,16 +19,13 @@ app.secret_key = os.urandom(24) #ключ защищающий сессию по
 def index():
     return render_template('index.html')
 
-#временная функция для улучшения читабельночти вывода результатов
+#функция, подготавлиявающая полученные расчеты для экспорта
 def format_dicts_side_by_side(dicts):
     """Форматирует словари, подгоняя их под ключи 180h, 168h, 79h, 180h_pr, 180h_night"""
 
-
     column_keys = ['180h', '168h', '79h', '180h_pr', '180h_night']
 
-
     table = {key: [] for key in column_keys}
-
 
     for d in dicts:
         for key, value in d.items():
@@ -41,14 +41,7 @@ def format_dicts_side_by_side(dicts):
             else:
                 for k in column_keys:
                     table[k].append('')
-
     return table
-    #rows = []
-    #for key in column_keys:
-    #    row = f"{key}: " + " | ".join(str(v) for v in table[key])
-    #    rows.append(row)
-
-    #return "<br>".join(rows)
 
 #факт расчет
 def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machines_168h, machines_79h, machines_180h_night):
@@ -284,18 +277,38 @@ def export_excel():
     try:
         # Получаем ключи и определяем количество колонок
         keys = list(data[0].keys())
-        num_columns = max(len(values) for dict_data in data for values in dict_data.values())
-        columns = [f'Col{i + 1}' for i in range(num_columns)]
+        num_columns = 15 #6+9
+        columns = columns = ['Факт среднее\n кол-во файлов\n в месяц',
+                   'Факт  \nкол-во машин',
+                   'Факт \nмаксимальное\n кол-во файлов',
+                   'Факт разница\n нагрузки',
+                   'Факт \nнагрузка в %',
+                   'Факт \nнехватка машин',
 
+                   'Факт \nсреднее кол-во\n файлов в месяц',
+                   'Кол-во \nновых УЗ',
+                   'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                   'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                   'Факт  \nкол-во машин',
+                   'Факт \nмаксимальное \nкол-во файлов',
+                   'Планируемая\nразница нагрузки',
+                   'Планируемая\nнагрузка в %',
+                   'Планируемая\nнехватка машин'
+                   ]
+        l = 2
+        if data[1] == {}:
+            num_columns = 6
+            columns = columns[:6]
+            l = 1
         rows = []
         for key in keys:
             row = [key]
-            for i in range(len(data)):
+            for i in range(l):
                 values = data[i].get(key, [])
-                row.extend(values + [""] * (num_columns - len(values)))
+                row.extend(values)
             rows.append(row)
 
-        headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+        headers = [""] + columns
         df = pd.DataFrame(rows, columns=headers)
 
         output = BytesIO()
@@ -310,22 +323,43 @@ def export_excel():
         return '', 204
 
 #экспорт результатов в файл пдф
+pdfmetrics.registerFont(TTFont('Arial', 'arial.ttf'))
 @app.route('/export_pdf')
 def export_pdf():
     try:
         # Получаем ключи и количество колонок
         keys = list(data[0].keys())
-        num_columns = max(len(values) for dict_data in data for values in dict_data.values())
-        columns = [f'Col{i + 1}' for i in range(num_columns)]
+        num_columns = 15 #6+9
+        columns = ['Факт среднее\n кол-во файлов\n в месяц',
+                   'Факт  \nкол-во машин',
+                   'Факт \nмаксимальное\n кол-во файлов',
+                   'Факт разница\n нагрузки',
+                   'Факт \nнагрузка в %',
+                   'Факт \nнехватка машин',
 
-        headers = ["Key"] + [f"Value 1 {col}" for col in columns] + [f"Value 2 {col}" for col in columns]
+                   'Факт \nсреднее кол-во\n файлов в месяц',
+                   'Кол-во \nновых УЗ',
+                   'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                   'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                   'Факт  \nкол-во машин',
+                   'Факт \nмаксимальное \nкол-во файлов',
+                   'Планируемая\nразница нагрузки',
+                   'Планируемая\nнагрузка в %',
+                   'Планируемая\nнехватка машин'
+                   ]
+        l = 2
+        if data[1] == {}:
+            num_columns = 6
+            columns = columns[:6]
+            l = 1
+        headers = [""] + columns
         table_data = [headers]
 
         for key in keys:
             row = [key]
-            for i in range(len(data)):
+            for i in range(l):
                 values = data[i].get(key, [])
-                row.extend(values + [""] * (num_columns - len(values)))
+                row.extend(values)
             table_data.append(row)
 
         output = BytesIO()
@@ -337,7 +371,7 @@ def export_pdf():
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Arial'),
             ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
             ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
@@ -385,10 +419,6 @@ def calculate():
     except:
         pass
 
-
-
-
-
     ###############
     #Расчеты:
     ###############
@@ -396,9 +426,7 @@ def calculate():
     ###############
     #расчет факт
     ###############
-
     fact_result = fact(total_files, day_files, night_files, day_pr_files, machines_180h, machines_168h, machines_79h, machines_180h_night)
-
 
     ###############
     #рассчет план
@@ -408,10 +436,6 @@ def calculate():
                        machines_180h_night, new_users)
     else:
         plan_result = ('')
-
-
-
-
 
 
     ###########################################
