@@ -9,6 +9,7 @@ body {
 
 .container {
     border: 5px solid #000000;
+
     padding: 20px;
     max-width: 1200px;
     background-color: #fff;
@@ -69,6 +70,9 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
+    min-width: 600px;
+
+    overflow-x: auto
 }
 
 table th, table td {
@@ -119,6 +123,8 @@ table td {
     cursor: pointer;
     font-size: 20px;
     border-radius: 15px;
+    max-width: 100%
+
   }
 
   /* Контейнер для выплывающих кнопок */
@@ -168,6 +174,15 @@ table td {
 
 
 @media (max-width: 768px) {
+    .export-btn {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+
+    .export-options button {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
     h1 {
         font-size: 24px;
         padding: 10px;
@@ -183,20 +198,22 @@ table td {
     }
 
     table th, table td {
-        padding: 10px;
-        font-size: 14px;
+        padding: 8px;
+        font-size: 5px;
     }
 
     .container, .input-fields, #result {
-        padding: 15px;
+        padding: 10px;
     }
 
     /* Горизонтальная прокрутка для таблиц */
     .container {
         overflow-x: auto;
+
     }
 
     table {
-        min-width: 600px;
+        min-width: 180px;
+
     }
 }
