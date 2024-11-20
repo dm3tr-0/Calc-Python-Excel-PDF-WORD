@@ -105,17 +105,10 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
          fact_mashine_loss['168h'] = round( ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'])  * (fact_percent_stress['180-79h'] - 86)) / 86 / max_files_month['168h'])
 
 
-
-
-
     if fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) < 0.86:
         fact_mashine_loss['79h'] = 0
     else:
         fact_mashine_loss['79h'] = math.ceil((fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) - 0.86) * (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) / 86 / max_files_month['79h'])
-
-
-
-
 
 
     if fact_diff_stress['180h_night'] < 0:
@@ -125,7 +118,7 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     else:
         fact_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
 
-
+    fact_mashine_loss['180h'] = fact_mashine_loss['180h_pr_night']
 
 
 
@@ -242,22 +235,23 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     if plan_percent_stress['180-79h'] < 86:
         plan_mashine_loss['168h'] = 0
     else:
-        plan_mashine_loss['168h'] = round((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] - plan_mid_newfiles_month['180-79h']) / max_files_month['168h'])
+        plan_mashine_loss['168h'] = round(((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) * (plan_percent_stress['180-79h'] - 86) ) / 86 / max_files_month['168h'])
 
-    if plan_percent_stress['180-79h'] < 86:
+    #=ЕСЛИ((M4/(СУММ(R4:R6) + U5 * F5))<0,86;0;ОКРУГЛВВЕРХ((M4/(СУММ(R4:R6) + U5*F5) - 0,86)*(СУММ(R4:R6) + U5 * F5) / 0,86 / F6; 0))
+    if (fact_mid_files_month['180-79h'] / ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) + plan_mashine_loss['168h'] * max_files_month['168h'])) < 86:
         plan_mashine_loss['79h'] = 0
     else:
-        plan_mashine_loss['79h'] = round((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] - plan_mid_newfiles_month['180-79h']) / max_files_month['79h'] * 1.5)
-
+        plan_mashine_loss['79h'] = math.ceil(((fact_mid_files_month['180-79h'] / ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) + plan_mashine_loss['168h'] * max_files_month['168h'])) - 86) * ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) + plan_mashine_loss['168h'] * max_files_month['168h']) / 86 / max_files_month['79h'])
 
 
     if plan_diff_stress['180h_night'] < 0:
         plan_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
-    elif plan_percent_stress['180h_night'] < 80:
+    elif (plan_percent_stress['180h_night'] + plan_percent_stress['180h_pr']) / 2 < 80:
         plan_mashine_loss['180h_pr_night'] = 0
     else:
         plan_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
 
+    plan_mashine_loss['180h'] = plan_mashine_loss['180h_pr_night']
 
 
     data[1] = format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])
@@ -412,55 +406,26 @@ def export_word():
 
             # Добавляем текст с ключевыми словами для замены
             doc.add_paragraph("На данный момент в отделе работает 15 машин, из них 8 работают в сменном графике (2/2) по 12 часов с 08:00 до 20:00 и с 20:00 до 08:00 и 7 работают по пятидневной рабочей неделе.")
-            doc.add_paragraph("Текущие показатели эффективности работы отдела:")
+            doc.add_paragraph("\n\tТекущие показатели эффективности работы отдела:\n")
             doc.add_paragraph("Среднее время обработки одного файла в дневное время — 8 минут.")
-            doc.add_paragraph("Среднее время обработки одного файла в ночное время и выходные дни — 6 минут.")
+            doc.add_paragraph(f"Среднее время обработки одного файла в ночное время и выходные дни — 6 минут.")
             doc.add_paragraph("Фактическое количество новых пользователей — 8300.")
-            doc.add_paragraph("Фактическое количество файлов в дневное время — W.")
-            doc.add_paragraph("Фактическое количество файлов в ночное время — E.")
-            doc.add_paragraph("Фактическое количество машин: 180ч — R, 168ч — T, 79ч — Y, 180ч ночь — U.")
-            doc.add_paragraph("Процент фактической нагрузки на одну машину составляет — P%.")
-            doc.add_paragraph("Фактическое количество нехватки машин: 180ч — A, 168ч — S, 79ч — D, 180ч ночь — F.")
+            doc.add_paragraph(f"Фактическое количество файлов в дневное время — {data[0]['180h'][2] + data[0]['168h'][2] + data[0]['79h'][2]}.")
+            doc.add_paragraph(f"Фактическое количество файлов в ночное время — {data[0]['180h_night'][2]}.")
+            doc.add_paragraph(f"Фактическое количество машин: 180ч — {data[0]['180h'][1]}, 168ч — {data[0]['168h'][1]}, 79ч — {data[0]['79h'][1]}, 180ч ночь — {data[0]['180h_night'][1]}.")
+            doc.add_paragraph(f"Процент фактической нагрузки на одну машину составляет — ({data[0]['180h'][4], data[0]['180h_pr'][4], data[0]['180h_night'][4]})%.")
+            doc.add_paragraph(f"Фактическое количество нехватки машин: 180ч — {data[0]['180h'][5]}, 168ч — {data[0]['168h'][5]}, 79ч — {data[0]['79h'][5]}, 180ч ночь — {data[0]['180h_night'][5]}.")
 
             if data[1] != {}:
-                doc.add_paragraph("Планируемые показатели эффективности работы отдела:")
-                doc.add_paragraph("Планируемое количество новых пользователей — G.")
-                doc.add_paragraph("Планируемое количество файлов в дневное время — H.")
-                doc.add_paragraph("Планируемое количество файлов в ночное время — J.")
-                doc.add_paragraph("Планируемое количество новых пользователей с учетом новых пользователей — 15000.")
-                doc.add_paragraph("Планируемое количество файлов в дневное время — V, в ночное время — B.")
-                doc.add_paragraph("Процент планируемой нагрузки на одну машину составляет — K%.")
-                doc.add_paragraph("Планируемое количество нехватки машин: 180ч — L, 168ч — Z, 79ч — X, 180ч ночь — C.")
-            #замена на значения  TODO написать значения из словарей data
-            data_replace = {
-                "W": "120",
-                "E": "80",
-                "R": "10",
-                "T": "5",
-                "Y": "2",
-                "U": "3",
-                "P": "75%",
-                "A": "1",
-                "S": "0",
-                "D": "2",
-                "F": "1",
-                "G": "10000",
-                "H": "150",
-                "J": "100",
-                "V": "180",
-                "B": "120",
-                "K": "85%",
-                "L": "2",
-                "Z": "1",
-                "X": "0",
-                "C": "1"
-            }
+                doc.add_paragraph("\n\tПланируемые показатели эффективности работы отдела:\n")
+                doc.add_paragraph(f"Планируемое количество новых пользователей — {data[1]['180h'][1]}.")
+                doc.add_paragraph(f"Планируемое количество файлов в дневное время — {data[1]['180h'][2]}.")
+                doc.add_paragraph(f"Планируемое количество файлов в ночное время — {data[1]['180h_night'][2]}.")
+                doc.add_paragraph(f"Планируемое количество новых пользователей с учетом новых пользователей — 15000.")
+                doc.add_paragraph(f"Планируемое количество файлов с учетом новых пользователей в дневное время — {data[1]['180h'][3]}, в ночное время — {data[1]['180h_night'][3]}.")
+                doc.add_paragraph(f"Процент планируемой нагрузки на одну машину составляет — ({data[1]['180h'][7], data[1]['180h_pr'][7], data[1]['180h_night'][7]})%.")
+                doc.add_paragraph(f"Планируемое количество нехватки машин: 180ч — {data[1]['180h'][8]}, 168ч — {data[1]['168h'][8]}, 79ч — {data[1]['79h'][8]}, 180ч ночь — {data[1]['180h_night'][8]}.")
 
-            # Заменяем ключевые слова в документе
-            for paragraph in doc.paragraphs:
-                for key, value in data_replace.items():
-                    if key in paragraph.text:
-                        paragraph.text = paragraph.text.replace(key, value)
 
             # Сохраняем документ в памяти
             file_stream = BytesIO()
@@ -471,7 +436,8 @@ def export_word():
             return send_file(file_stream, as_attachment=True, download_name="report.docx")
         else:
             return '', 204
-    except Exception:
+    except Exception as ex:
+        print(ex)
         return '', 204
 
 
