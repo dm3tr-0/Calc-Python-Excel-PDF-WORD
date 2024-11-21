@@ -1,26 +1,19 @@
-from flask import Flask, render_template, request, jsonify, send_file
-
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-
-from settings import * #тут зашитые значения
-
 import math
 import os
-
 from io import BytesIO
-
+from settings import * #тут зашитые значения
+from flask import Flask, render_template, request, jsonify, send_file
 import pandas as pd
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
 from reportlab.lib import colors
-
 from docx import Document
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #ключ защищающий сессию пользователя
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -104,12 +97,10 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     else:
          fact_mashine_loss['168h'] = round( ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'])  * (fact_percent_stress['180-79h'] - 86)) / 86 / max_files_month['168h'])
 
-
     if fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) < 0.86:
         fact_mashine_loss['79h'] = 0
     else:
         fact_mashine_loss['79h'] = math.ceil((fact_mid_files_month['180-79h'] / (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) - 0.86) * (fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] + fact_mashine_loss['168h'] * max_files_month['168h']) / 86 / max_files_month['79h'])
-
 
     if fact_diff_stress['180h_night'] < 0:
         fact_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
@@ -119,8 +110,6 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         fact_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
 
     fact_mashine_loss['180h'] = fact_mashine_loss['180h_pr_night']
-
-
 
     data[0] = format_dicts_side_by_side([fact_mid_files_month, fact_mashine_count, fact_max_files, fact_diff_stress, fact_percent_stress, fact_mashine_loss])
 
@@ -133,8 +122,9 @@ def fact(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         f"для 180ч пр/ночь: {fact_mashine_loss['180h_pr_night']}<br><br>"
     )
 
-
     return fact_result
+
+
 #план расчет
 def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machines_168h, machines_79h, machines_180h_night, new_users):
     # факт среднее количество файлов в месяц для 180-79ч 180ч пр/вых 180чночь
@@ -186,7 +176,6 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_pr_night': 0
     }
 
-
     # среднее количесво файлов новых уз в месяц
     plan_mid_fileUZ_month = {
         '180-79h': 'задастся ниже',
@@ -203,11 +192,7 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_night': round(fact_mid_files_month['180h_night'] + plan_mid_fileUZ_month['180h_night'])
     }
 
-    # факт кол-во машин уже указано в fact_mashine_count
-
-    # факт максимальное кол-во файлов указано в fact_max_files
-
-    # пданируемая разница нагрузки
+    # планируемая разница нагрузки
     plan_diff_stress = {
         '180-79h': round(
             fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'] - plan_mid_newfiles_month[
@@ -216,7 +201,7 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_night': round(fact_max_files['180h_night'] - plan_mid_newfiles_month['180h_night'])
     }
 
-    # пданируемая разница нагрузки в процентах
+    # планируемая разница нагрузки в процентах
     plan_percent_stress = {
         '180-79h': round(100 * plan_mid_newfiles_month['180-79h'] / (
                     fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h'])),
@@ -224,7 +209,7 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         '180h_night': round(100 * plan_mid_newfiles_month['180h_night'] / fact_max_files['180h_night'])
     }
 
-    # планируемая нехватка машин TODO поменять формулы
+    # планируемая нехватка машин
     plan_mashine_loss = {
         '180h': 'black',
         '168h': -1,
@@ -243,7 +228,6 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
     else:
         plan_mashine_loss['79h'] = math.ceil(((fact_mid_files_month['180-79h'] / ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) + plan_mashine_loss['168h'] * max_files_month['168h'])) - 86) * ((fact_max_files['180h'] + fact_max_files['168h'] + fact_max_files['79h']) + plan_mashine_loss['168h'] * max_files_month['168h']) / 86 / max_files_month['79h'])
 
-
     if plan_diff_stress['180h_night'] < 0:
         plan_mashine_loss['180h_pr_night'] = round(fact_max_files['180h_night'] / max_files_month['180h_night'] * 1.8)
     elif (plan_percent_stress['180h_night'] + plan_percent_stress['180h_pr']) / 2 < 80:
@@ -252,7 +236,6 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         plan_mashine_loss['180h_pr_night'] = round(max_files_month['180h_night'] / fact_max_files['180h_night'])
 
     plan_mashine_loss['180h'] = plan_mashine_loss['180h_pr_night']
-
 
     data[1] = format_dicts_side_by_side([fact_mid_files_month, {'180h': new_users, '168h': new_users, '79h': new_users,'180h_pr': new_users,'180h_night': new_users}, plan_mid_fileUZ_month, plan_mid_newfiles_month, fact_mashine_count, fact_max_files, plan_diff_stress, plan_percent_stress, plan_mashine_loss])
 
@@ -265,7 +248,6 @@ def plan(total_files, day_files, night_files, day_pr_files, machines_180h, machi
         f"для 180ч пр/ночь: {plan_mashine_loss['180h_pr_night']}<br>"
     )
     return plan_result
-
 
 
 #тут хранятся данные для экспорта, полученные после расчета
@@ -396,7 +378,7 @@ def export_pdf():
     except Exception:
         return '', 204
 
-#экспорт в вордовский документ TODO сделать отступы, шрифт, курсив и тд + поменять значения в словаре для замены
+#экспорт в вордовский документ TODO исправить подставленные значения
 @app.route('/export_word')
 def export_word():
     try:
@@ -444,12 +426,13 @@ def export_word():
 #эта функция срабатывает, когда нажали кнопку рассчитать(в index.html)
 @app.route('/calculate', methods=['POST'])
 def calculate():
+    #очищаем словари с данными, полученными после предыдущего рассчета
     data[0].clear()
     data[1].clear()
+    
     ###########################
     # Получаем данные из формы:
     ###########################
-
     try:
         #факт среднее количество файлов в месяц
         total_files = int(request.form['total_files']) #общее
@@ -472,6 +455,7 @@ def calculate():
         isNewUsersexist = True
     except:
         pass
+
 
     ###############
     #Расчеты:
