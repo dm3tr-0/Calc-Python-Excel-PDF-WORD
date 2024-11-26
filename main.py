@@ -1,15 +1,21 @@
 import math
 import os
 from io import BytesIO
+
 from settings import * #тут зашитые значения
+
 from flask import Flask, render_template, request, jsonify, send_file
+
 import pandas as pd
+import openpyxl
+
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
 from reportlab.lib import colors
+
 from docx import Document
 
 app = Flask(__name__)
@@ -297,6 +303,23 @@ def export_excel():
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False, sheet_name='Sheet1')
+                worksheet = writer.sheets['Sheet1']
+
+                # Установка ширины колонок
+                for col_num, column_header in enumerate(headers, 1):  # Нумерация колонок в Excel начинается с 1
+                    max_length = max(
+                        len(str(column_header)),
+                        *(len(str(row[col_num - 1])) for row in rows)  # Сравниваем длины данных в текущей колонке
+                    )
+                    worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = max_length - 2
+
+                # Установка высоты строк
+                for row_num, row in enumerate([headers] + rows, 1):  # Нумерация строк в Excel начинается с 1
+                    max_height = max(
+                        len(str(cell).split('\n')) for cell in row  # Считаем количество строк внутри ячейки
+                    )
+                    worksheet.row_dimensions[row_num].height = max_height * 15 - 2  # Высота одной строки ~15 пикселей
+
             output.seek(0)
 
             # Передача файла напрямую в ответе, не используя сессии
@@ -378,7 +401,7 @@ def export_pdf():
     except Exception:
         return '', 204
 
-#экспорт в вордовский документ TODO исправить подставленные значения
+#экспорт в вордовский документ
 @app.route('/export_word')
 def export_word():
     try:
@@ -387,26 +410,45 @@ def export_word():
             doc = Document()
 
             # Добавляем текст с ключевыми словами для замены
-            doc.add_paragraph("На данный момент в отделе работает 15 машин, из них 8 работают в сменном графике (2/2) по 12 часов с 08:00 до 20:00 и с 20:00 до 08:00 и 7 работают по пятидневной рабочей неделе.")
-            doc.add_paragraph("\n\tТекущие показатели эффективности работы отдела:\n")
-            doc.add_paragraph("Среднее время обработки одного файла в дневное время — 8 минут.")
-            doc.add_paragraph(f"Среднее время обработки одного файла в ночное время и выходные дни — 6 минут.")
-            doc.add_paragraph("Фактическое количество новых пользователей — 8300.")
-            doc.add_paragraph(f"Фактическое количество файлов в дневное время — {data[0]['180h'][2] + data[0]['168h'][2] + data[0]['79h'][2]}.")
-            doc.add_paragraph(f"Фактическое количество файлов в ночное время — {data[0]['180h_night'][2]}.")
-            doc.add_paragraph(f"Фактическое количество машин: 180ч — {data[0]['180h'][1]}, 168ч — {data[0]['168h'][1]}, 79ч — {data[0]['79h'][1]}, 180ч ночь — {data[0]['180h_night'][1]}.")
-            doc.add_paragraph(f"Процент фактической нагрузки на одну машину составляет — ({data[0]['180h'][4], data[0]['180h_pr'][4], data[0]['180h_night'][4]})%.")
-            doc.add_paragraph(f"Фактическое количество нехватки машин: 180ч — {data[0]['180h'][5]}, 168ч — {data[0]['168h'][5]}, 79ч — {data[0]['79h'][5]}, 180ч ночь — {data[0]['180h_night'][5]}.")
+            doc.add_paragraph(f"На данный момент в отделе работает 15 машин, из них 8 работают в сменном графике (2/2) по 12 часов с 08:00 до 20:00 и с 20:00 до 08:00 и 7 работают по пятидневной рабочей неделе в промежутке времени с 08:00 до 20:00, что позволяет нам обрабатывать {round(max_files_month['180h'] + max_files_month['168h'] + max_files_month['79h'] + max_files_month['180h_pr'] + max_files_month['180h_night'])} файлов в месяц.\n")
+            doc.add_paragraph("\tТекущие показатели эффективности работы отдела:\n")
+            doc.add_paragraph(f"•\tСреднее время обработки одного файла в дневное время — {time_obr_day} минут.")
+            doc.add_paragraph(f"•\tСреднее время обработки одного файла в ночное время и выходные дни — {time_obr_night} минут.")
+            doc.add_paragraph("•\tФактическое количество новых пользователей — 8300.")
+            doc.add_paragraph(f"•\tФактическое количество файлов в дневное время — {data[0]['180h'][2] + data[0]['168h'][2] + data[0]['79h'][2]}.")
+            doc.add_paragraph(f"•\tФактическое количество файлов в ночное время — {data[0]['180h_night'][2]}.")
+            doc.add_paragraph("•\tФактическое количество машин:")
+            doc.add_paragraph(f"\t‣\t180ч — {data[0]['180h'][1]};")
+            doc.add_paragraph(f"\t‣\t168ч — {data[0]['168h'][1]};")
+            doc.add_paragraph(f"\t‣\t79ч — {data[0]['79h'][1]};")
+            doc.add_paragraph(f"\t‣\t180ч ночь — {data[0]['180h_night'][1]};")
+            doc.add_paragraph(f"•\tПроцент фактической нагрузки на одну машину составляет — ")
+            doc.add_paragraph(f"\t‣\t180-79ч — {data[0]['180h'][4]}%;")
+            doc.add_paragraph(f"\t‣\t180ч праздники — {data[0]['180h_pr'][4]}%;")
+            doc.add_paragraph(f"\t‣\t180ч ночь — {data[0]['180h_night'][4]}%")
+            doc.add_paragraph("•\tФактическое количество нехватки машин:")
+            doc.add_paragraph(f"\t‣\t180ч — {data[0]['180h'][5]};" )
+            doc.add_paragraph(f"\t‣\t168ч — {data[0]['168h'][5]};" )
+            doc.add_paragraph(f"\t‣\t79ч — {data[0]['79h'][5]};" )
+            doc.add_paragraph(f"\t‣\t180ч ночь/пр — {data[0]['180h_night'][5]}.\n")
 
             if data[1] != {}:
                 doc.add_paragraph("\n\tПланируемые показатели эффективности работы отдела:\n")
-                doc.add_paragraph(f"Планируемое количество новых пользователей — {data[1]['180h'][1]}.")
-                doc.add_paragraph(f"Планируемое количество файлов в дневное время — {data[1]['180h'][2]}.")
-                doc.add_paragraph(f"Планируемое количество файлов в ночное время — {data[1]['180h_night'][2]}.")
-                doc.add_paragraph(f"Планируемое количество новых пользователей с учетом новых пользователей — 15000.")
-                doc.add_paragraph(f"Планируемое количество файлов с учетом новых пользователей в дневное время — {data[1]['180h'][3]}, в ночное время — {data[1]['180h_night'][3]}.")
-                doc.add_paragraph(f"Процент планируемой нагрузки на одну машину составляет — ({data[1]['180h'][7], data[1]['180h_pr'][7], data[1]['180h_night'][7]})%.")
-                doc.add_paragraph(f"Планируемое количество нехватки машин: 180ч — {data[1]['180h'][8]}, 168ч — {data[1]['168h'][8]}, 79ч — {data[1]['79h'][8]}, 180ч ночь — {data[1]['180h_night'][8]}.")
+                doc.add_paragraph(f"•\tПланируемое количество новых пользователей — {data[1]['180h'][1]}.")
+                doc.add_paragraph(f"•\tПланируемое количество файлов в дневное время — {data[1]['180h'][2]}.")
+                doc.add_paragraph(f"•\tПланируемое количество файлов в ночное время — {data[1]['180h_night'][2]}.")
+                doc.add_paragraph(f"•\tПланируемое количество новых пользователей с учетом новых пользователей — 15000.")
+                doc.add_paragraph(f"•\tПланируемое количество файлов с учетом новых пользователей в дневное время — {data[1]['180h'][3]}.")
+                doc.add_paragraph(f"•\tПланируемое количество файлов с учетом новых пользователей в ночное время — {data[1]['180h_night'][3]}.")
+                doc.add_paragraph(f"•\tПроцент планируемой нагрузки на одну машину составляет — ")
+                doc.add_paragraph(f"\t‣\t180-79ч — {data[1]['180h'][7]}%;")
+                doc.add_paragraph(f"\t‣\t180ч праздники — {data[1]['180h_pr'][7]}%")
+                doc.add_paragraph(f"\t‣\t180ч ночь — {data[1]['180h_night'][7]}%.")
+                doc.add_paragraph(f"•\tПланируемое количество нехватки машин:")
+                doc.add_paragraph(f"\t‣\t180ч — {data[1]['180h'][8]};")
+                doc.add_paragraph(f"\t‣\t168ч — {data[1]['168h'][8]};")
+                doc.add_paragraph(f"\t‣\t79ч — {data[1]['79h'][8]};")
+                doc.add_paragraph(f"\t‣\t180ч ночь/пр — {data[1]['180h_night'][8]}.")
 
 
             # Сохраняем документ в памяти
@@ -429,7 +471,7 @@ def calculate():
     #очищаем словари с данными, полученными после предыдущего рассчета
     data[0].clear()
     data[1].clear()
-    
+
     ###########################
     # Получаем данные из формы:
     ###########################
