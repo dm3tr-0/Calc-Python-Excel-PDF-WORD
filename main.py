@@ -2,13 +2,16 @@ import math
 import os
 from io import BytesIO
 
-from settings import * #тут зашитые значения
+#тут зашитые значения
+from settings import *
 
 from flask import Flask, render_template, request, jsonify, send_file
 
+#библиотеки для работы с экселем
 import pandas as pd
 import openpyxl
 
+#библиотеки для работы с пдф
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import letter, landscape
@@ -16,6 +19,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
 from reportlab.lib import colors
 
+#библиотека для работы с вордом
 from docx import Document
 
 app = Flask(__name__)
@@ -266,59 +270,118 @@ def export_excel():
         if data[0] != {}:
             # Получаем ключи и определяем количество колонок
             keys = list(data[0].keys())
-            num_columns = 15 #6+9
-            columns = columns = ['Факт среднее\n кол-во файлов\n в месяц',
-                       'Факт  \nкол-во машин',
-                       'Факт \nмаксимальное\n кол-во файлов',
-                       'Факт разница\n нагрузки',
-                       'Факт \nнагрузка в %',
-                       'Факт \nнехватка машин',
+            num_columns_fact = 6
+            columns_fact = [
+                    'Факт среднее\n кол-во файлов\n в месяц',
+                    'Факт  \nкол-во машин',
+                    'Факт \nмаксимальное\n кол-во файлов',
+                    'Факт разница\n нагрузки',
+                    'Факт \nнагрузка в %',
+                    'Факт \nнехватка машин'
+                    ]
+            num_columns_fact = 9
+            columns_plan = [
+                    'Факт \nсреднее кол-во\n файлов в месяц',
+                    'Кол-во \nновых УЗ',
+                    'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                    'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                    'Факт  \nкол-во машин',
+                    'Факт \nмаксимальное \nкол-во файлов',
+                    'Планируемая\nразница нагрузки',
+                    'Планируемая\nнагрузка в %',
+                    'Планируемая\nнехватка машин'
+                    ]
 
-                       'Факт \nсреднее кол-во\n файлов в месяц',
-                       'Кол-во \nновых УЗ',
-                       'Среднее кол-во\n файлов новых\n УЗ в месяц',
-                       'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
-                       'Факт  \nкол-во машин',
-                       'Факт \nмаксимальное \nкол-во файлов',
-                       'Планируемая\nразница нагрузки',
-                       'Планируемая\nнагрузка в %',
-                       'Планируемая\nнехватка машин'
-                       ]
-            l = 2
-            if data[1] == {}:
-                num_columns = 6
-                columns = columns[:6]
-                l = 1
-            rows = []
+            rows_fact = []
             for key in keys:
                 row = [key]
-                for i in range(l):
-                    values = data[i].get(key, [])
-                    row.extend(values)
-                rows.append(row)
+                values = data[0].get(key, [])
+                row.extend(values)
+                rows_fact.append(row)
 
-            headers = [""] + columns
-            df = pd.DataFrame(rows, columns=headers)
+            headers_fact = ["ФАКТ"] + columns_fact
+            df_fact = pd.DataFrame(rows_fact, columns=headers_fact)
+
+            rows_plan = []
+            if data[1] != {}:
+                for key in keys:
+                    row = [key]
+                    values = data[1].get(key, [])
+                    row.extend(values)
+                    rows_plan.append(row)
+
+            headers_plan = ["ПЛАН"] + columns_plan
+            df_plan = pd.DataFrame(rows_plan, columns=headers_plan)
 
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
+                # Записываем первую таблицу
+                df_fact.to_excel(writer, index=False, sheet_name='Sheet1', startrow=0)
+                # Вычисляем начальную строку для второй таблицы с учетом заголовков и данных первой таблицы
+                startrow_plan = len(df_fact) + 2  # +1 для отступа и +1 для заголовков
+                # Записываем вторую таблицу
+                df_plan.to_excel(writer, index=False, sheet_name='Sheet1', startrow=startrow_plan)
+
+                # Получаем объект worksheet
                 worksheet = writer.sheets['Sheet1']
 
-                # Установка ширины колонок
-                for col_num, column_header in enumerate(headers, 1):  # Нумерация колонок в Excel начинается с 1
-                    max_length = max(
-                        len(str(column_header)),
-                        *(len(str(row[col_num - 1])) for row in rows)  # Сравниваем длины данных в текущей колонке
-                    )
-                    worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = max_length - 2
+                # бъединяем ячейки
+                #fact
+                worksheet.merge_cells(start_row=2, start_column=2, end_row=4, end_column=2)
+                worksheet["B2"] = data[0]['180h'][0]
 
-                # Установка высоты строк
-                for row_num, row in enumerate([headers] + rows, 1):  # Нумерация строк в Excel начинается с 1
-                    max_height = max(
-                        len(str(cell).split('\n')) for cell in row  # Считаем количество строк внутри ячейки
+                worksheet.merge_cells(start_row=2, start_column=5, end_row=4, end_column=5)
+                worksheet["E2"] = data[0]['180h'][3]
+
+                worksheet.merge_cells(start_row=2, start_column=6, end_row=4, end_column=6)
+                worksheet["F2"] = data[0]['180h'][4]
+
+                worksheet.merge_cells(start_row=5, start_column=7, end_row=6, end_column=7)
+                worksheet["G5"] = data[0]['180h_night'][5]
+
+                #plan
+                if data[1] != {}:
+                    worksheet.merge_cells(start_row=9, start_column=2, end_row=11, end_column=2)
+                    worksheet["B9"] = data[1]['180h'][0]
+
+                    worksheet.merge_cells(start_row=9, start_column=3, end_row=13, end_column=3)
+                    worksheet["C9"] = data[1]['180h'][1]
+
+                    worksheet.merge_cells(start_row=9, start_column=4, end_row=11, end_column=4)
+                    worksheet["D9"] = data[1]['180h'][2]
+
+                    worksheet.merge_cells(start_row=9, start_column=5, end_row=11, end_column=5)
+                    worksheet["E9"] = data[1]['180h'][3]
+
+                    worksheet.merge_cells(start_row=9, start_column=8, end_row=11, end_column=8)
+                    worksheet["H9"] = data[1]['180h'][6]
+
+                    worksheet.merge_cells(start_row=9, start_column=9, end_row=11, end_column=9)
+                    worksheet["I9"] = data[1]['180h'][7]
+
+                    worksheet.merge_cells(start_row=12, start_column=10, end_row=13, end_column=10)
+                    worksheet["J12"] = data[1]['180h_night'][8]
+
+                # Установка ширины колонок
+                for col_num, column_cells in enumerate(zip(*df_fact.values.tolist(), *df_plan.values.tolist()), 1):
+                    max_length = max(
+                        len(str(column_cells[0])),
+                        *(len(str(cell)) for cell in column_cells if cell is not None)  # Игнорируем None
                     )
-                    worksheet.row_dimensions[row_num].height = max_height * 15 - 2  # Высота одной строки ~15 пикселей
+                    # Настраиваем ширину колонок с небольшим запасом
+                    worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = max_length + 2
+
+                # Установка высоты строк для первой таблицы
+                for row_num, row in enumerate([df_fact.columns.tolist()] + df_fact.values.tolist(),
+                                              1):  # Нумерация строк начинается с 1
+                    max_height = max(
+                        len(str(cell).split('\n')) for cell in row if cell is not None)  # Учитываем переносы строк
+                    worksheet.row_dimensions[row_num].height = max_height * 15  # Высота строки ~15 пикселей на линию
+
+                # Установка высоты строк для второй таблицы
+                for row_num, row in enumerate([df_plan.columns.tolist()] + df_plan.values.tolist(), startrow_plan + 1):
+                    max_height = max(len(str(cell).split('\n')) for cell in row if cell is not None)
+                    worksheet.row_dimensions[row_num].height = max_height * 15
 
             output.seek(0)
 
@@ -327,7 +390,8 @@ def export_excel():
                              mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             return '', 204
-    except Exception:
+    except Exception as ex:
+        print(ex)
         return '', 204
 
 #экспорт результатов в файл пдф
