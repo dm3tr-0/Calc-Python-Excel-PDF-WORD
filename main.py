@@ -16,8 +16,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
-from reportlab.platypus import Table, TableStyle, SimpleDocTemplate
+from reportlab.platypus import Table, TableStyle, SimpleDocTemplate, Spacer
 from reportlab.lib import colors
+from reportlab.lib.units import inch
 
 #библиотека для работы с вордом
 from docx import Document
@@ -320,7 +321,8 @@ def export_excel():
                 # Вычисляем начальную строку для второй таблицы с учетом заголовков и данных первой таблицы
                 startrow_plan = len(df_fact) + 2  # +1 для отступа и +1 для заголовков
                 # Записываем вторую таблицу
-                df_plan.to_excel(writer, index=False, sheet_name='Sheet1', startrow=startrow_plan)
+                if data[1] != {}:
+                    df_plan.to_excel(writer, index=False, sheet_name='Sheet1', startrow=startrow_plan)
 
                 # Получаем объект worksheet
                 worksheet = writer.sheets['Sheet1']
@@ -405,43 +407,54 @@ def export_pdf():
         if data[0] != {}:
             # Получаем ключи и количество колонок
             keys = list(data[0].keys())
-            num_columns = 15 #6+9
-            columns = ['Факт среднее\n кол-во файлов\n в месяц',
-                       'Факт  \nкол-во машин',
-                       'Факт \nмаксимальное\n кол-во файлов',
-                       'Факт разница\n нагрузки',
-                       'Факт \nнагрузка в %',
-                       'Факт \nнехватка машин',
 
-                       'Факт \nсреднее кол-во\n файлов в месяц',
-                       'Кол-во \nновых УЗ',
-                       'Среднее кол-во\n файлов новых\n УЗ в месяц',
-                       'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
-                       'Факт  \nкол-во машин',
-                       'Факт \nмаксимальное \nкол-во файлов',
-                       'Планируемая\nразница нагрузки',
-                       'Планируемая\nнагрузка в %',
-                       'Планируемая\nнехватка машин'
-                       ]
-            l = 2
-            if data[1] == {}:
-                num_columns = 6
-                columns = columns[:6]
-                l = 1
-            headers = [""] + columns
-            table_data = [headers]
+            num_colums_fact = 6
+            columns_fact = [
+                'Факт среднее\n кол-во файлов\n в месяц',
+                'Факт  \nкол-во машин',
+                'Факт \nмаксимальное\n кол-во файлов',
+                'Факт разница\n нагрузки',
+                'Факт \nнагрузка в %',
+                'Факт \nнехватка машин'
+                ]
+            num_columns_plan = 9
+            columns_plan = [
+                'Факт \nсреднее кол-во\n файлов в месяц',
+                'Кол-во \nновых УЗ',
+                'Среднее кол-во\n файлов новых\n УЗ в месяц',
+                'Среднее  кол-во \nфайлов с учетом \nновых УЗ в месяц',
+                'Факт  \nкол-во машин',
+                'Факт \nмаксимальное \nкол-во файлов',
+                'Планируемая\nразница нагрузки',
+                'Планируемая\nнагрузка в %',
+                'Планируемая\nнехватка машин'
+                ]
+
+
+            headers_fact = ["ФАКТ"] + columns_fact
+            table_data_fact = [headers_fact]
+
+            headers_plan = ["ПЛАН"] + columns_plan
+            table_data_plan = [headers_plan]
 
             for key in keys:
                 row = [key]
-                for i in range(l):
-                    values = data[i].get(key, [])
+                values = data[0].get(key, [])
+                row.extend(values)
+                table_data_fact.append(row)
+
+            if data[1] != {}:
+                for key in keys:
+                    row = [key]
+                    values = data[1].get(key, [])
                     row.extend(values)
-                table_data.append(row)
+                    table_data_plan.append(row)
 
             output = BytesIO()
             pdf = SimpleDocTemplate(output, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20,
                                     bottomMargin=20)
-            table = Table(table_data)
+            table_fact = Table(table_data_fact)
+            table_plan = Table(table_data_plan)
 
             style = TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
@@ -453,10 +466,37 @@ def export_pdf():
                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.black)
             ])
-            table.setStyle(style)
-            table._argW = [pdf.width / len(table_data[0])] * len(table_data[0])
+            table_fact.setStyle(style)
+            table_fact._argW = [pdf.width / len(table_data_plan[0])] * len(table_data_plan[0])
 
-            pdf.build([table])
+            table_plan.setStyle(style)
+            table_plan._argW = [pdf.width / len(table_data_plan[0])] * len(table_data_plan[0])
+
+            #объединяем ячейки
+            table_fact.setStyle(TableStyle([
+                ('SPAN', (1, 1), (1, 3)),
+                ('SPAN', (4, 1), (4, 3)),
+                ('SPAN', (5, 1), (5, 3)),
+                ('SPAN', (6, 4), (6, 5))
+            ]))
+
+            if data[1] != {}:
+                table_plan.setStyle(TableStyle([
+                    ('SPAN', (1, 1), (1, 3)),
+                    ('SPAN', (2, 1), (2, 5)),
+                    ('SPAN', (3, 1), (3, 3)),
+                    ('SPAN', (4, 1), (4, 3)),
+                    ('SPAN', (7, 1), (7, 3)),
+                    ('SPAN', (8, 1), (8, 3)),
+                    ('SPAN', (9, 4), (9, 5))
+                ]))
+
+
+            if data[1] != {}:
+                elements = [table_fact, Spacer(1, 0.5 * inch), table_plan]
+                pdf.build(elements)
+            else:
+                pdf.build([table_fact])
             output.seek(0)
 
             return send_file(output, as_attachment=True, download_name="report.pdf", mimetype="application/pdf")
