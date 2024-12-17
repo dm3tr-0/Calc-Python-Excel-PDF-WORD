@@ -364,26 +364,21 @@ def export_excel():
                     worksheet.merge_cells(start_row=12, start_column=10, end_row=13, end_column=10)
                     worksheet["J12"] = data[1]['180h_night'][8]
 
-                # Установка ширины колонок
-                for col_num, column_cells in enumerate(zip(*df_fact.values.tolist(), *df_plan.values.tolist()), 1):
-                    max_length = max(
-                        len(str(column_cells[0])),
-                        *(len(str(cell)) for cell in column_cells if cell is not None)  # Игнорируем None
-                    )
-                    # Настраиваем ширину колонок с небольшим запасом
-                    worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = max_length + 2
+                for column_cells in worksheet.columns:
+                    length = max(len(str(cell.value)) for cell in column_cells)
+                    worksheet.column_dimensions[column_cells[0].column_letter].width = length / 1.5 + 3
 
-                # Установка высоты строк для первой таблицы
-                for row_num, row in enumerate([df_fact.columns.tolist()] + df_fact.values.tolist(),
-                                              1):  # Нумерация строк начинается с 1
-                    max_height = max(
-                        len(str(cell).split('\n')) for cell in row if cell is not None)  # Учитываем переносы строк
-                    worksheet.row_dimensions[row_num].height = max_height * 15  # Высота строки ~15 пикселей на линию
+                # Автоподгонка высоты строк
+                for row_cells in worksheet.iter_rows():
+                    max_height = 1
+                    for cell in row_cells:
+                        # Считаем количество строк в ячейке с переносом
+                        cell_lines = len(str(cell.value).split('\n')) if cell.value else 1
+                        max_height = max(max_height, cell_lines)
 
-                # Установка высоты строк для второй таблицы
-                for row_num, row in enumerate([df_plan.columns.tolist()] + df_plan.values.tolist(), startrow_plan + 1):
-                    max_height = max(len(str(cell).split('\n')) for cell in row if cell is not None)
-                    worksheet.row_dimensions[row_num].height = max_height * 15
+                    # Устанавливаем высоту строки
+                    # Коэффициент 15 примерно соответствует высоте строки в Excel
+                    worksheet.row_dimensions[row_cells[0].row].height = max_height * 15
 
             output.seek(0)
 
