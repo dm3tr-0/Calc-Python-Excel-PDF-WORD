@@ -5,7 +5,7 @@ document.getElementById('mode-1').addEventListener('submit', function(event) {
     const formData = new FormData(this);
 
     //отправляем запрос на сервер через fetch
-    fetch('/calculate', {
+    fetch('/calculate',  {
         method: 'POST',
         body: formData
     })
