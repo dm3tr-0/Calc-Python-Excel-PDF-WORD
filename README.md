@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ### 🖥 Запуск приложения
 ```bash
-flask run
+flask run  #либо просто через python main.py
 ```
 
 ## 📂 Структура проекта
