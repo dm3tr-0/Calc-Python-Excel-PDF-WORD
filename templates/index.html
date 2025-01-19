@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
 
     <title>Калькулятор ресурсов SOC</title>
 </head>
@@ -15,18 +13,18 @@
     <div class="container">
         <h1>Калькулятор ресурсов SOC</h1>
 
-        <!-- выпадающий список с бывором реджимов -->
+        <!-- выпадающий список с выбором режимов -->
         <label for="calculator-type">Выбор типа калькулятора:</label>
         <select id="calculator-type">
             <option value="0">Выбрать режим</option>
             <option value="1">Режим 1: Калькулятор из excel</option>
-            <option value="2">Режим 2: -</option>
-            <option value="3">Режим 3: -</option>
+            <option value="2">Режим 2: -none-</option>
+            <option value="3">Режим 3: -none-</option>
         </select>
 
         <!-- Поля для режима 0 -->
         <div id="mode-0" class="input-fields">
-            <p>тут будет описание работы режимов калькулятора</p>
+            <p>тут можно будеть сделать описание работы каждого из режимов</p>
         </div>
         <!-- Поля для режима 1 -->
          <form id="mode-1" class="input-fields" method="POST" action="/calculate">
@@ -67,10 +65,9 @@
                 </tr>
             </table>
 
-
             <!-- Кнопка рассчитать для режима 1 -->
             <button type="submit">Рассчитать</button>
-
+             <!-- Кнопка экспорта для режима 1 -->
              <div class="export-container">
                   <button class="export-btn">Экспорт</button>
                   <div class="export-options">
@@ -91,8 +88,6 @@
                 <p id="result-output"></p>
             </div>
         </form>
-
-
 
         <!-- Поля для режима 2 -->
         <div id="mode-2" class="input-fields">
