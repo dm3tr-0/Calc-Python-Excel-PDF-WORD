@@ -40,18 +40,19 @@ flask run
 ```
 
 ## 📂 Структура проекта
-
-<p>Calc-Python-Excel-PDF-WORD/</p>
-<p>│</p>
-<p>├── main.py              # Основной файл приложения</p>
-<p>├── settings.py         # Настройки и константы</p>
-<p>├── first_mode.py         # 1-й режим работы калькулятора</p>
-<p>├── templates/          # HTML-шаблоны</p>
-<p>│    └── index.html</p>
-<p>├── static/             # Статические файлы</p>
-<p>│    ├── css/</p>
-<p>│    └── js/</p>
-<p>└── requirements.txt    # Зависимости проекта</p>
+```bash
+Calc-Python-Excel-PDF-WORD/
+│
+├── main.py              # Основной файл приложения
+├── settings.py         # Настройки и константы
+├── first_mode.py         # 1-й режим приложения
+├── templates/          # HTML-шаблоны
+│   └── index.html
+├── static/             # Статические файлы
+│   ├── css/
+│   └── js/
+└── requirements.txt    # Зависимости проекта
+```
 
 ## 🔑 Основные библиотеки
 <p> -Flask: Веб-фреймворк</p>
